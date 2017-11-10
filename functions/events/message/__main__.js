@@ -1,4 +1,4 @@
-const lib = require('lib')({token: process.env.STDLIB_TOKEN});
+const lib = require('lib')({token: process.env.STDLIB_TOKEN})
 
 /**
 * message event
@@ -16,14 +16,12 @@ const lib = require('lib')({token: process.env.STDLIB_TOKEN});
 * @returns {object}
 */
 module.exports = (user, channel, text = '', event = {}, botToken = null, callback) => {
-
   // Only send a response to certain messages
   if (text.match(/hey|hello|hi|sup/i)) {
     callback(null, {
       text: `Hey there! <@${user}> said ${text}`
-    });
+    })
   } else {
-    callback(null, {});
+    callback(null, {})
   }
-
-};
+}

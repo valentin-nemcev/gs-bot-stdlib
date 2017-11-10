@@ -5,32 +5,32 @@
   and save team identity data (bot access token, etc.) for future reference.
 */
 
-const lib = require('lib')({token: process.env.STDLIB_TOKEN});
+const lib = require('lib')({token: process.env.STDLIB_TOKEN})
 
-function formatTeamKey(teamId) {
-  return `SLACK::${process.env.SLACK_APP_NAME}::${teamId}`;
+function formatTeamKey (teamId) {
+  return `SLACK::${process.env.SLACK_APP_NAME}::${teamId}`
 };
 
-const CACHE = {};
+const CACHE = {}
 
 module.exports = {
   setTeam: (teamId, value, callback) => {
     lib.utils.storage.set(formatTeamKey(teamId), value, (err, value) => {
       if (!err) {
-        CACHE[teamId] = value;
+        CACHE[teamId] = value
       }
-      callback(err, value);
-    });
+      callback(err, value)
+    })
   },
   getTeam: (teamId, callback) => {
     if (CACHE[teamId]) {
-      return callback(null, CACHE[teamId]);
+      return callback(null, CACHE[teamId])
     }
     lib.utils.storage.get(formatTeamKey(teamId), (err, value) => {
       if (!err) {
-        CACHE[teamId] = value;
+        CACHE[teamId] = value
       }
-      callback(err, value);
-    });
+      callback(err, value)
+    })
   }
-};
+}

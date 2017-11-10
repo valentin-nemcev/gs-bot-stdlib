@@ -1,4 +1,4 @@
-const lib = require('lib')({token: process.env.STDLIB_TOKEN});
+const lib = require('lib')({token: process.env.STDLIB_TOKEN})
 
 /**
 * channel_join event
@@ -13,9 +13,7 @@ const lib = require('lib')({token: process.env.STDLIB_TOKEN});
 * @returns {object}
 */
 module.exports = (user, channel, text = '', event = {}, botToken = null, callback) => {
-
   callback(null, {
     text: `Hello <@${user}>, welcome to <#${channel}>! :relaxed:`
-  });
-
-};
+  })
+}

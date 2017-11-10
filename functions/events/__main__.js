@@ -1,10 +1,10 @@
-const lib = require('lib')({token: process.env.STDLIB_TOKEN});
+const lib = require('lib')({token: process.env.STDLIB_TOKEN})
 
-const getBotToken = require('../../helpers/get_bot_token.js');
-const message = require('../../utils/message.js');
+const getBotToken = require('../../helpers/get_bot_token.js')
+const message = require('../../utils/message.js')
 
-const EventCache = require('../../helpers/event_cache.js');
-const Cache = new EventCache(60000);
+const EventCache = require('../../helpers/event_cache.js')
+const Cache = new EventCache(60000)
 
 /**
 * Slack Event Handler:
@@ -25,44 +25,42 @@ const Cache = new EventCache(60000);
 * @returns {object}
 */
 module.exports = (context, callback) => {
-
-  let params = context.params;
+  let params = context.params
 
   if (params.challenge) {
-    return callback(null, {challenge: params.challenge});
+    return callback(null, {challenge: params.challenge})
   }
 
-  let event = params.event || {};
+  let event = params.event || {}
 
   // Validate event from params
   if (!event || typeof event !== 'object') {
-    return callback(new Error('Invalid event'));
+    return callback(new Error('Invalid event'))
   }
 
   // Dedupe any slash commands that come in via messages.channel that aren't registered
   if (event.text && event.text.startsWith('/')) {
-    return callback(new Error('Ignoring slash commands invoked as messages'));
+    return callback(new Error('Ignoring slash commands invoked as messages'))
   }
 
   // Dedupe events from Slack's retry policy
   if (!Cache.add(event, params.event_id)) {
-    return callback(new Error('Event duplication limit reached'));
+    return callback(new Error('Event duplication limit reached'))
   }
 
-  let name = [event.type, event.subtype].filter(v => !!v).join('.');
+  let name = [event.type, event.subtype].filter(v => !!v).join('.')
 
   if (!name) {
-    return callback(new Error('No event type provided'));
+    return callback(new Error('No event type provided'))
   }
 
-  let user = event.user;
-  let channel = event.channel || (event.item && event.item.channel) || 'general';
-  let text = event.text || '';
+  let user = event.user
+  let channel = event.channel || (event.item && event.item.channel) || 'general'
+  let text = event.text || ''
 
   getBotToken(params.team_id, (err, botToken) => {
-
     if (err) {
-      callback(err);
+      callback(err)
     }
 
     lib[`${context.service.identifier}.events.${name}`](
@@ -76,7 +74,7 @@ module.exports = (context, callback) => {
       (err, result) => {
         if (err) {
           if (result && result.error && result.error.type === 'ClientError') {
-            callback(err);
+            callback(err)
           } else {
             message(
               botToken,
@@ -85,7 +83,7 @@ module.exports = (context, callback) => {
                 text: err.message
               },
               callback
-            );
+            )
           }
         } else {
           message(
@@ -93,10 +91,9 @@ module.exports = (context, callback) => {
             channel,
             result,
             callback
-          );
+          )
         }
       }
-    );
-  });
-
-};
+    )
+  })
+}

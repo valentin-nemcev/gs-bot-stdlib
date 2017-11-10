@@ -1,7 +1,7 @@
-const lib = require('lib')({token: process.env.STDLIB_TOKEN});
+const lib = require('lib')({token: process.env.STDLIB_TOKEN})
 
-const getBotToken = require('../../helpers/get_bot_token.js');
-const update = require('../../utils/update_message.js');
+const getBotToken = require('../../helpers/get_bot_token.js')
+const update = require('../../utils/update_message.js')
 
 /**
  * Slack Actions (Interactive Messages) Response Handler
@@ -18,13 +18,12 @@ const update = require('../../utils/update_message.js');
  * @returns {object}
  */
 module.exports = (context, callback) => {
-
-  let params = context.params;
-  let action;
+  let params = context.params
+  let action
 
   if (params.payload) {
     try {
-      action = JSON.parse(params.payload);
+      action = JSON.parse(params.payload)
     } catch (err) {
       return callback(err)
     }
@@ -47,19 +46,18 @@ module.exports = (context, callback) => {
         id: params.user,
         name: params.user
       }
-    };
+    }
   }
 
   if (!action.actions || !action.actions.length) {
-    return callback(null, {error: 'No actions specified'});
+    return callback(null, {error: 'No actions specified'})
   }
 
-  let name = action.actions[0].name;
+  let name = action.actions[0].name
 
   getBotToken(action.team.id, (err, botToken) => {
-
     if (err) {
-      callback(err);
+      callback(err)
     }
 
     lib[`${context.service.identifier}.actions.${name}`](
@@ -72,7 +70,7 @@ module.exports = (context, callback) => {
       (err, result) => {
         if (err) {
           if (result && result.error && result.error.type === 'ClientError') {
-            callback(err);
+            callback(err)
           } else {
             update(
               botToken,
@@ -82,7 +80,7 @@ module.exports = (context, callback) => {
                 text: err.message
               },
               callback
-            );
+            )
           }
         } else {
           update(
@@ -91,11 +89,9 @@ module.exports = (context, callback) => {
             action.message_ts,
             result,
             callback
-          );
+          )
         }
       }
-    );
-
-  });
-
-};
+    )
+  })
+}

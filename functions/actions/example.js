@@ -1,4 +1,4 @@
-const lib = require('lib')({token: process.env.STDLIB_TOKEN});
+const lib = require('lib')({token: process.env.STDLIB_TOKEN})
 
 /**
 * example.js
@@ -17,7 +17,6 @@ const lib = require('lib')({token: process.env.STDLIB_TOKEN});
 * @returns {object}
 */
 module.exports = (user, channel, action = {}, botToken = null, callback) => {
-
   // Slack does not permit array parameters to be passed in normally -- you must
   // convert them into strings.
   callback(null, {
@@ -35,6 +34,5 @@ module.exports = (user, channel, action = {}, botToken = null, callback) => {
         }
       ]
     }]
-  });
-
-};
+  })
+}

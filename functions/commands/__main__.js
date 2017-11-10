@@ -1,7 +1,7 @@
-const lib = require('lib')({token: process.env.STDLIB_TOKEN});
+const lib = require('lib')({token: process.env.STDLIB_TOKEN})
 
-const getBotToken = require('../../helpers/get_bot_token.js');
-const respond = require('../../utils/respond.js');
+const getBotToken = require('../../helpers/get_bot_token.js')
+const respond = require('../../utils/respond.js')
 
 /**
 * Slack Slash Command Handler:
@@ -16,23 +16,21 @@ const respond = require('../../utils/respond.js');
 * @returns {object}
 */
 module.exports = (context, callback) => {
-
-  let command = context.params;
+  let command = context.params
 
   if (!command.command) {
-    return callback(new Error('No command specified'));
+    return callback(new Error('No command specified'))
   }
 
   if (command.command[0] !== '/') {
-    return callback(new Error('Commands must start with /'));
+    return callback(new Error('Commands must start with /'))
   }
 
-  let name = command.command.substr(1);
+  let name = command.command.substr(1)
 
   getBotToken(command.team_id, (err, botToken) => {
-
     if (err) {
-      callback(err);
+      callback(err)
     }
 
     lib[`${context.service.identifier}.commands.${name}`](
@@ -52,17 +50,15 @@ module.exports = (context, callback) => {
               text: err.message
             },
             callback
-          );
+          )
         } else {
           respond(
             command.response_url,
             result,
             callback
-          );
+          )
         }
       }
-    );
-
-  });
-
-};
+    )
+  })
+}
