@@ -13,6 +13,7 @@ const respond = require('../../utils/respond.js')
 *   You can test individual slash commands from the command line with:
 *     $ lib .commands.NAME [username] [channel] [text]
 *
+* @bg params
 * @returns {object}
 */
 module.exports = (context, callback) => {
@@ -35,7 +36,7 @@ module.exports = (context, callback) => {
 
     lib[`${context.service.identifier}.commands.${name}`](
       {
-        user: command.user_id,
+        userId: command.user_id,
         channel: command.channel_id,
         text: command.text,
         command: command,
