@@ -36,6 +36,7 @@ module.exports = (context, callback) => {
 
     lib[`${context.service.identifier}.commands.${name}`](
       {
+        teamId: command.team_id,
         userId: command.user_id,
         channel: command.channel_id,
         text: command.text,

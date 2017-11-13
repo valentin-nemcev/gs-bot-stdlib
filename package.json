@@ -6,6 +6,7 @@
   "main": "functions/__main__.js",
   "dependencies": {
     "async": "^2.1.5",
+    "camelcase-keys": "^4.1.0",
     "ejs": "^2.5.6",
     "lib": "^3.0.1",
     "lodash": "^4.17.4",

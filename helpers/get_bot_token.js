@@ -6,6 +6,9 @@ const storage = require('./storage.js')
 * @param {Function} callback Callback returns error and token, null token means no team provided
 */
 module.exports = function getBotToken (teamId, callback) {
+  if (process.env.SLACK_LEGACY_TOKEN) {
+    return callback(null, process.env.SLACK_LEGACY_TOKEN)
+  }
   if (!teamId) {
     return callback(null, null)
   }
