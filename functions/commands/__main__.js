@@ -38,7 +38,7 @@ module.exports = (context, callback) => {
       {
         teamId: command.team_id,
         userId: command.user_id,
-        channel: command.channel_id,
+        channelId: command.channel_id,
         text: command.text,
         command: command,
         botToken: botToken

@@ -1,6 +1,6 @@
 const lib = require('lib')({token: process.env.STDLIB_TOKEN})
-const {trello} = require('../../utils/api')
-const {quote, bold, url} = require('../../utils/format')
+const {trello, getSlack} = require('../../utils/api')
+const {user, quote, bold, url} = require('../../utils/format')
 const toSafeInteger = require('lodash/toSafeInteger')
 /**
 * /cm_vote
@@ -9,15 +9,15 @@ const toSafeInteger = require('lodash/toSafeInteger')
 *
 * @param {string} teamId The user id of the user that invoked this command (name is usable as well)
 * @param {string} userId The user id of the user that invoked this command (name is usable as well)
-* @param {string} channel The channel id the command was executed in (name is usable as well)
+* @param {string} channelId The channelId id the command was executed in (name is usable as well)
 * @param {string} text The text contents of the command
 * @param {object} command The full Slack command object
 * @param {string} botToken The bot token for the Slack bot you have activated
 * @returns {object}
 */
-module.exports = async (teamId, userId, channel, text = '', command = {}, botToken = null) => {
+module.exports = async (teamId, userId, channelId, text = '', command = {}, botToken = null) => {
   const cardShortIds = text.split(/[\s,;]+/).map(toSafeInteger)
-  const {listId} =
+  const {listId, channelId: electionChannelId} =
     await lib.utils.storage.get('current_election')
 
   const allCards = (await trello.get(
@@ -42,6 +42,15 @@ module.exports = async (teamId, userId, channel, text = '', command = {}, botTok
     .map(({idShort, name, shortUrl}) => `${bold(idShort)}: ${url(shortUrl, name)}`)
     .map(quote)
     .join('\n\n')
+
+  const slack = await getSlack(teamId)
+  console.log(electionChannelId, await slack.post({
+    url: '/chat.postMessage',
+    body: {
+      channel: electionChannelId,
+      text: `Accepted vote from ${user(userId)}`
+    }
+  }).catch(console.error))
 
   return {
     response_type: 'ephemeral',

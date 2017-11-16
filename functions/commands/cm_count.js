@@ -1,8 +1,8 @@
 const lib = require('lib')({token: process.env.STDLIB_TOKEN})
-// const {trello} = require('../../utils/api')
-// const {quote, bold, url} = require('../../utils/format')
-// const toSafeInteger = require('lodash/toSafeInteger')
-// const random = require('lodash/random')
+const {trello} = require('../../utils/api')
+const {user, quote, bold, url} = require('../../utils/format')
+const toSafeInteger = require('lodash/toSafeInteger')
+
 const isEmpty = require('lodash/isEmpty')
 const update = require('lodash/update')
 const dropWhile = require('lodash/dropWhile')
@@ -24,72 +24,82 @@ const uniq = require('lodash/uniq')
 *
 * @param {string} teamId The user id of the user that invoked this command (name is usable as well)
 * @param {string} userId The user id of the user that invoked this command (name is usable as well)
-* @param {string} channel The channel id the command was executed in (name is usable as well)
+* @param {string} channelId The channelId id the command was executed in (name is usable as well)
 * @param {string} text The text contents of the command
 * @param {object} command The full Slack command object
 * @param {string} botToken The bot token for the Slack bot you have activated
 * @returns {object}
 */
-module.exports = async (teamId, userId, channel, text = '', command = {}, botToken = null) => {
-  // const cardShortIds = text.split(/[\s,;]+/).map(toSafeInteger)
-  // const {members} =
-  //   await lib.utils.storage.get('current_election')
+module.exports = async (teamId, userId, channelId, text = '', command = {}, botToken = null) => {
+  const seats = toSafeInteger(text)
+  const {members, listId, message} =
+    await lib.utils.storage.get('current_election')
 
-  // const votes = await Promise.all(members.map(
-  //   id => lib.utils.storage.get(`current_election_vote_${id}`)
-  // ))
+  const votes = await Promise.all(members.map(
+    id => lib.utils.storage.get(`current_election_vote_${id}`)
+  ))
 
-  // const allCards = (await trello.get(
-  //   `/lists/${listId}/cards`,
-  //   {qs: {fields: ['idShort', 'name', 'shortUrl'].join(',')}}
-  // ))
-  //   .filter(({idShort}) => cardShortIds.includes(idShort))
+  const winningShortIds = STV(seats, votes).map(toSafeInteger)
 
-  // const votedCards = cardShortIds
-  //   .map(idShort => allCards.find(c => c.idShort === idShort))
-  //   .filter(Boolean)
+  const cards = (await trello.get(
+    `/lists/${listId}/cards`,
+    {qs: {fields: ['idShort', 'name', 'shortUrl'].join(',')}}
+  ))
+    .filter(({idShort}) => winningShortIds.includes(idShort))
 
-  // const votedCardIds = votedCards.map(c => c.idShort)
-  // lib.utils.storage.set(`current_election_vote_${userId}`, votedCardIds)
-  //   .then(() => console.info('Accepted vote:', userId, votedCards))
+  const winningCards = winningShortIds
+    .map(idShort => cards.find(c => c.idShort === idShort))
+    .filter(Boolean)
 
-  // const cardsText = votedCards
-  //   .map(({idShort, name, shortUrl}) => `${bold(idShort)}: ${url(shortUrl, name)}`)
-  //   .map(quote)
-  //   .join('\n\n')
-  //
-  // const votes = Array(8).fill(null).map(
-  //   () => Array(3).fill(null).map(() => random(1, 20))
-  // )
-  const votes = [
-    [ 20, 10, 20 ],
-    [ 13, 12, 6 ],
-    [ 9, 17, 16 ],
-    [ 18, 1, 17 ],
-    [ 17, 9, 16 ],
-    [ 17, 12, 20 ],
-    [ 9, 13, 10 ],
-    [ 10, 10, 9 ]
-  ]
-  // console.log(votes)
+  const cardsText = winningCards
+    .map(({idShort, name, shortUrl}) => `${bold(idShort)}: ${url(shortUrl, name)}`)
+    .map(quote)
+    .join('\n\n')
+
+  const votedMembers = members.filter((m, i) => !isEmpty(votes[i]))
+
+  if (isEmpty(winningShortIds)) {
+    return {
+      response_type: 'ephemeral',
+      text: 'No votes to count'
+    }
+  }
 
   return {
-    response_type: 'ephemeral',
-    test: STV(5, votes)
-    // text: `You voted for following cards (most preferred on top):\n` +
-    // `${cardsText}\nVote accepted!`
+    response_type: 'in_channel',
+    text: `Counted votes from ${votedMembers.map(user).join(', ')} using Single Transferable Vote system\n` +
+    (message && `Description: \n${quote(message)}\n`) +
+    `Following cards won the election (most preferred on top):\n` +
+    `${cardsText}\n`
   }
 }
 
+// const votes = Array(8).fill(null).map(
+//   () => Array(3).fill(null).map(() => random(1, 20))
+// )
+// const votes = [
+//   [ 20, 10, 20 ],
+//   [ 13, 12, 6 ],
+//   [ 9, 17, 16 ],
+//   [ 18, 1, 17 ],
+//   [ 17, 9, 16 ],
+//   [ 17, 12, 20 ],
+//   [ 9, 13, 10 ],
+//   [ 10, 10, 9 ]
+// ]
+
 // https://en.wikipedia.org/wiki/Single_transferable_vote
 function STV (seatsCount, initialBallots) {
-  initialBallots = initialBallots.filter(b => !isEmpty(b)).map(uniq)
+  initialBallots = initialBallots
+    .map(ballot => (ballot || []).filter(Boolean))
+    .filter(b => !isEmpty(b)).map(uniq)
+
   const candidates = union(...initialBallots).map(String)
-  let candidateToValueOfVotes
+  let candidateToValueOfVotes = {}
 
   elimination: // eslint-disable-line no-labels
   for (let eliminationRound = 0; eliminationRound <= candidates.length; eliminationRound++) {
-    console.debug('eliminationRound', eliminationRound)
+    console.info('eliminationRound', eliminationRound)
 
     const ballots = initialBallots
       .map(ballot => ballot
@@ -100,27 +110,27 @@ function STV (seatsCount, initialBallots) {
     ballots.forEach(ballot => { ballot.voteValue = 1 })
 
     const quota = ballots.length / (seatsCount + 1)
-    console.debug('quota', quota)
+    console.info('quota', quota)
 
     const candidateBallots = groupBy(ballots, 0)
 
     let provisionalWinners = {}
 
     for (const distributionRound of range(candidates.length)) {
-      console.debug('distributionRound', distributionRound)
+      console.info('distributionRound', distributionRound)
 
       candidateToValueOfVotes = mapValues(
         candidateBallots,
         ballots => sumBy(ballots, 'voteValue')
       )
-      console.debug('candidateToValueOfVotes\n', candidateToValueOfVotes)
+      console.info('candidateToValueOfVotes\n', candidateToValueOfVotes)
 
       const newWinners = pickBy(
         candidateToValueOfVotes,
         (valueOfVotes, candidate) =>
           valueOfVotes > quota && !provisionalWinners[candidate]
       )
-      console.debug('newWinners', newWinners)
+      console.info('newWinners', newWinners)
 
       provisionalWinners = pickBy(
         candidateToValueOfVotes,
@@ -128,7 +138,7 @@ function STV (seatsCount, initialBallots) {
       )
 
       if (Object.keys(provisionalWinners).length >= seatsCount) {
-        console.debug('provisionalWinners', provisionalWinners)
+        console.info('provisionalWinners', provisionalWinners)
         break elimination // eslint-disable-line no-labels
       }
 
@@ -138,7 +148,7 @@ function STV (seatsCount, initialBallots) {
           ([candidate, valueOfVotes]) => valueOfVotes
         )
         pull(candidates, loser[0])
-        console.debug('eliminated', loser)
+        console.info('eliminated', loser)
         break
       }
 
@@ -155,7 +165,7 @@ function STV (seatsCount, initialBallots) {
             candidateBallots,
             transferredBallot[0],
             (ballots = []) => {
-              console.debug(
+              console.info(
                 'transfer', transferredBallot.voteValue,
                 'from', candidate,
                 'to', transferredBallot[0]

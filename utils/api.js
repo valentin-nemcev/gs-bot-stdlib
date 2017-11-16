@@ -5,6 +5,9 @@ const camelCaseKeys = require('camelcase-keys')
 module.exports.trello = request.defaults({
   json: true,
   baseUrl: 'https://api.trello.com/1',
+  headers: {
+    'Authorization': 'Bearer ' + process.env.TRELLO_AUTH_TOKEN
+  },
   qs: {
     key: process.env.TRELLO_API_KEY,
     token: process.env.TRELLO_AUTH_TOKEN

@@ -1,6 +1,8 @@
 const lib = require('lib')({token: process.env.STDLIB_TOKEN})
 const {atHere, bold, user, url, code, quote} = require('../../utils/format')
 const lowerCase = require('lodash/lowerCase')
+const clamp = require('lodash/clamp')
+const sampleSize = require('lodash/sampleSize')
 const {trello, getSlack} = require('../../utils/api')
 
 /**
@@ -10,13 +12,13 @@ const {trello, getSlack} = require('../../utils/api')
 *
 * @param {string} teamId The user id of the user that invoked this command (name is usable as well)
 * @param {string} userId The user id of the user that invoked this command (name is usable as well)
-* @param {string} channel The channel id the command was executed in (name is usable as well)
+* @param {string} channelId The channelId id the command was executed in (name is usable as well)
 * @param {string} text The text contents of the command
 * @param {object} command The full Slack command object
 * @param {string} botToken The bot token for the Slack bot you have activated
 * @returns {object}
 */
-module.exports = async (teamId, userId, channel, text = '', command = {}, botToken = null) => {
+module.exports = async (teamId, userId, channelId, text = '', command = {}, botToken = null) => {
   const [boardId, listName, ...messageWords] = text.split(/\s/)
   const message = messageWords.join(' ')
   const lists = await trello.get(`/boards/${boardId}/lists/open`)
@@ -34,7 +36,9 @@ module.exports = async (teamId, userId, channel, text = '', command = {}, botTok
   const cards = (await trello.get(
     `/lists/${list.id}/cards`,
     {qs: {fields: ['idShort', 'name', 'shortUrl'].join(',')}}
-  )).map(({idShort, name, shortUrl}) => `${bold(idShort)}: ${url(shortUrl, name)}`)
+  ))
+  const cardsText = cards
+    .map(({idShort, name, shortUrl}) => `${bold(idShort)}: ${url(shortUrl, name)}`)
     .map(quote)
     .join('\n\n')
 
@@ -44,11 +48,14 @@ module.exports = async (teamId, userId, channel, text = '', command = {}, botTok
       .filter(u => !(u.isBot || u.deleted))
       .map(u => u.id)
 
-  members.forEach(
-    id => lib.utils.storage.clear(`current_election_vote_${id}`)
-  )
+  await Promise.all(members.map(
+    id => lib.utils.storage.set({
+      key: `current_election_vote_${id}`,
+      value: false
+    }).catch(console.error)
+  ))
 
-  const currentElection = {userId, boardId, listId: list.id, message, members}
+  const currentElection = {userId, boardId, channelId, listId: list.id, message, members}
   try {
     await lib.utils.storage.set('current_election', currentElection)
   } catch (e) {
@@ -57,12 +64,15 @@ module.exports = async (teamId, userId, channel, text = '', command = {}, botTok
 
   console.info('Started election:', currentElection)
 
+  const recommendedCards = clamp(Math.ceil(cards.length / 4, 3, 15))
+
   return {
     response_type: 'in_channel',
-    text: `${cards}\n${user(userId)} started an election!\n` +
+    text: `${cardsText}\n${user(userId)} started an election!\n` +
     (message && `Description: \n${quote(message)}\n`) +
     `Everyone ${atHere()}, please cast your votes for cards listed above by ` +
-    `posting command /cm_vote followed by 5 card ids (in bold above) in order of preference, most preferred first` +
-    `, for example: ${code('/cm_vote 785 385 128 343 566')}`
+    `posting command /cm_vote followed by multiple card ids (in bold above) in order of preference, most preferred first\n` +
+    `Recommended number of votes is ${recommendedCards}, but you can vote for more or less\n` +
+    `For example: ${code('/cm_vote ' + sampleSize(cards.map(c => c.idShort), recommendedCards).join(' '))}`
   }
 }
