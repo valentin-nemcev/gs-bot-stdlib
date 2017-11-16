@@ -49,8 +49,13 @@ module.exports = async (teamId, userId, channel, text = '', command = {}, botTok
   )
 
   const currentElection = {userId, boardId, listId: list.id, message, members}
-  lib.utils.storage.set('current_election', currentElection)
-    .then(() => console.info('Started election:', currentElection))
+  try {
+    await lib.utils.storage.set('current_election', currentElection)
+  } catch (e) {
+    console.error(e)
+  }
+
+  console.info('Started election:', currentElection)
 
   return {
     response_type: 'in_channel',

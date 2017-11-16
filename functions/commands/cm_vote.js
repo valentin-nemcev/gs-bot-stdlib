@@ -31,8 +31,12 @@ module.exports = async (teamId, userId, channel, text = '', command = {}, botTok
     .filter(Boolean)
 
   const votedCardIds = votedCards.map(c => c.idShort)
-  lib.utils.storage.set(`current_election_vote_${userId}`, votedCardIds)
-    .then(() => console.info('Accepted vote:', userId, votedCards))
+  try {
+    await lib.utils.storage.set(`current_election_vote_${userId}`, votedCardIds)
+  } catch (e) {
+    console.log(e)
+  }
+  console.info('Accepted vote:', userId, votedCardIds)
 
   const cardsText = votedCards
     .map(({idShort, name, shortUrl}) => `${bold(idShort)}: ${url(shortUrl, name)}`)
