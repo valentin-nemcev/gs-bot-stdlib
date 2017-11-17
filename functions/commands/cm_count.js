@@ -89,6 +89,7 @@ module.exports = async (teamId, userId, channelId, text = '', command = {}, botT
 // ]
 
 // https://en.wikipedia.org/wiki/Single_transferable_vote
+// https://en.wikipedia.org/wiki/Wright_system
 function STV (seatsCount, initialBallots) {
   initialBallots = initialBallots
     .map(ballot => (ballot || []).filter(Boolean))
@@ -161,14 +162,15 @@ function STV (seatsCount, initialBallots) {
           )
           if (isEmpty(transferredBallot)) return
           transferredBallot.voteValue = ballot.voteValue * surplusTransferValue
+          const targetCandidate = transferredBallot[0]
           update(
             candidateBallots,
-            transferredBallot[0],
+            targetCandidate,
             (ballots = []) => {
               console.info(
                 'transfer', transferredBallot.voteValue,
                 'from', candidate,
-                'to', transferredBallot[0]
+                'to', targetCandidate
               )
               ballots.push(transferredBallot)
               return ballots
